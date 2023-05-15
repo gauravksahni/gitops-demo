@@ -14,12 +14,11 @@ spec:
     spec:
       containers:
       - name: flask-app-container
-        image: gauravkb/gitops-demo-app:18
+        image: gauravkb/gitops-demo-app:40
         ports:
         - containerPort: 5000
 ---
 apiVersion: v1
-kind: Service
 metadata:
   name: flask-app-svc
 spec:

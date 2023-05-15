@@ -17,10 +17,9 @@ pipeline {
         }
         stage('Checkout SCM'){
             steps {
-                git credentialsId: 'github', 
+                git credentialsId: 'girthub-gitops-api-token', 
                 url: 'https://github.com/gauravksahni/gitops-demo.git',
-                branch: 'main'
-                
+                branch: 'main'  
             }
         }
         stage('Build Docker image'){
@@ -28,7 +27,6 @@ pipeline {
                 script{
                     docker_image = docker.build "${IMAGE_NAME}"
                 }
-
             }
         }
         stage('Push Docker Image'){
@@ -45,7 +43,6 @@ pipeline {
             steps{
                 sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
                 sh "docker rmi ${IMAGE_NAME}:latest"
-
             }
         }
         stage('Updating k8s deployment file'){
@@ -59,11 +56,15 @@ pipeline {
             steps {
                 script{
                     sh """
+                    git config --global user.email "gauravksahni@gmail.com"
+                    git config --global user.name "Gaurav"
                     git add deployment.yml
-                    git commit -m 'Updated the deployment file' """
-                    withCredentials([usernamePassword(credentialsId: 'github', passwordVariable: 'pass', usernameVariable: 'user')]) {
-                        sh "git push http://$user:$pass@github.com/gauravksahni/gitops-demo.git main"
-                    }
+                    git commit -m 'Updated the deployment file' 
+                    
+                    """
+                    withCredentials([gitUsernamePassword(credentialsId: 'girthub-gitops-api-token', gitToolName: 'Default')]) {
+                        sh "git push origin main"
+                     }
                 }
             }
         }

@@ -13,7 +13,7 @@ def fetchDetails():
 
 @app.route("/")
 def hello_world():
-    return "<p>Hello, World!</p>"
+    return "<p>Hello, World , you just opened the flask app!</p>"
 
 @app.route("/health")
 def health():
