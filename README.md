@@ -12,3 +12,10 @@ Building the docker image using Dockerfile docker build -t webapp:1.0 . docker r
 Writing Docker Compose file
 Writing Kubernetes Manifest files for the application
 Creating Helm Chart help create webapp
+
+
+
+----
+Argo cd:
+argocd admin initial-password -n argocd
+argocd account update-password
