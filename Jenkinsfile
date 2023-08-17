@@ -47,7 +47,7 @@ pipeline {
         }
         stage('Trigger config change pipeline'){
             steps{
-                sh "curl -v -k --user admin:114881a40c55dfee0e7dd776c03ec741ef -X POST -H 'cache-control: no-cache' -H 'content-type: application/json' --data 'IMAGE_TAG=${IMAGE_TAG}' 'http://45.79.126.232:8080/job/gitops-config/buildWithParameters?token=gitops-config'"
+                sh "curl -v -k --user admin:1 -X POST -H 'cache-control: no-cache' -H 'content-type: application/json' --data 'IMAGE_TAG=${IMAGE_TAG}' 'http://45.79.126.232:8080/job/gitops-config/buildWithParameters?token=gitops-config'"
             }
         }
     }
