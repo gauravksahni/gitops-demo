@@ -1,54 +1,122 @@
-pipeline {
-    agent any
+pipeline{
+    agent {
+    kubernetes {
+      yaml '''
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          labels:
+            app: test
+        spec:
+          containers:
+          - name: git
+            image: bitnami/git:latest
+            command:
+            - cat
+            tty: true
+          - name: sonarcli
+            image: sonarsource/sonar-scanner-cli:latest
+            command:
+            - cat
+            tty: true
+          - name: curl
+            image: alpine/curl:latest
+            command:
+            - cat
+            tty: true
+          - name: docker
+            image: docker:latest
+            command:
+            - cat
+            tty: true
+            volumeMounts:
+            - mountPath: /var/run/docker.sock
+              name: docker-sock
+          volumes:
+          - name: docker-sock
+            hostPath:
+              path: /var/run/docker.sock
+        '''
+        }      
+    } 
     environment {
+        GITHUB_USERNAME = 'gauravksahni'
+        REPOSITORY = 'gitops-demo'
         DOCKERHUB_USERNAME = "gauravkb"
-        APP_NAME = "gitops-demo-app"
-        IMAGE_TAG = "${BUILD_NUMBER}"
+        APP_NAME = 'py-flask-webapp'
         IMAGE_NAME = "${DOCKERHUB_USERNAME}" + "/" + "${APP_NAME}"
-        REGISTRY_CREDS = 'dockerhub'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        DOCKERHUB_REGISTRY_TOKEN = credentials('jenkins-dockerhub-integration')
+    }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '3'))
+    }
+    tools {
+        git 'Default'
     }
     stages{
-        stage('Clean Workspace'){
-            steps{
-                script {
-                    cleanWs()
-                }
-            }
-        }
+        // stage('Clean Workspace'){
+        //     steps{
+        //         script {
+        //             cleanWs()
+        //         }
+        //     }
+        // }
         stage('Checkout SCM'){
-            steps {
-                git credentialsId: 'girthub-gitops-api-token', 
-                url: 'https://github.com/gauravksahni/gitops-demo.git',
-                branch: 'main'  
-            }
-        }
-        stage('Build Docker image'){
             steps{
-                script{
-                    docker_image = docker.build "${IMAGE_NAME}"
-                }
-            }
-        }
-        stage('Push Docker Image'){
-            steps{
-                script{
-                    docker.withRegistry('', REGISTRY_CREDS){
-                        docker_image.push("${BUILD_NUMBER}")
-                        docker_image.push('latest')
+                container('git'){
+                    script {
+                        println "----------Stage 1 - Checkout Repository------------"
+                        checkout scmGit(
+                            branches: [[name: '*/main']],
+                            extensions: [],
+                            userRemoteConfigs: [[url: "https://github.com/${GITHUB_USERNAME}/${REPOSITORY}.git"]]
+                        )
                     }
                 }
             }
         }
-        stage('Delete Docker Image'){
-            steps{
-                sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
-                sh "docker rmi ${IMAGE_NAME}:latest"
+        stage('SonarQube Analysis') {
+            steps {
+                container('sonarcli'){
+                    script {
+                        // def scannerHome = tool 'sonarqube-scanner'
+                        withSonarQubeEnv('sonarqube-server') {
+                            sh '''/opt/sonar-scanner/bin/sonar-scanner \
+                                -Dsonar.projectKey=gitops-demo \
+                                -Dsonar.sources=. 
+                            '''
+                        }
+                    }
+                }
             }
         }
-        stage('Trigger config change pipeline'){
+        stage('Wait for Quality Gate'){
             steps{
-                sh "curl -v -k --user admin:1 -X POST -H 'cache-control: no-cache' -H 'content-type: application/json' --data 'IMAGE_TAG=${IMAGE_TAG}' 'http://45.79.126.232:8080/job/gitops-config/buildWithParameters?token=gitops-config'"
+                container('sonarcli'){
+                    timeout(time: 1, unit: 'HOURS') {
+                        waitForQualityGate abortPipeline: true
+                    }
+                }
+            }
+        }
+        stage('Build Docker Image'){
+            steps{
+                container('docker'){
+                    sh "docker build -t $IMAGE_NAME:$IMAGE_TAG ."
+                    sh "docker tag $IMAGE_NAME:$IMAGE_TAG $IMAGE_NAME:latest"
+                }
+            }
+        }
+        stage('Push Docker Image to Docker Hub'){
+            steps{
+                container('docker'){
+                    withCredentials([usernamePassword(credentialsId: 'jenkins-dockerhub-integration', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
+                        sh "docker login -u ${USERNAME} -p ${PASSWORD}"
+                        sh "docker push $IMAGE_NAME:$IMAGE_TAG"
+                        sh "docker push $IMAGE_NAME:latest"
+                    }
+                }
             }
         }
     }
-}
