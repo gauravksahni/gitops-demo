@@ -62,7 +62,7 @@ pipeline{
         //         }
         //     }
         // }
-        stage('Checkout SCM'){
+        stage('---Checkout SCM---'){
             steps{
                 container('git'){
                     script {
