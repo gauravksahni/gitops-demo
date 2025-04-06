@@ -55,7 +55,7 @@ pipeline{
         git 'Default'
     }
     stages{
-        // stage('Clean Workspace'){
+        // stage('----Clean Workspace---'){
         //     steps{
         //         script {
         //             cleanWs()
