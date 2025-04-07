@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: flask-app-v1
 spec:
-  replicas: 15
+  replicas: 10
   selector:
     matchLabels:
       app: flask-app
