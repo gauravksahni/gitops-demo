@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: flask-app
+  name: flask-app-v1
 spec:
   replicas: 15
   selector:
@@ -20,7 +20,7 @@ spec:
 ---
 apiVersion: v1
 metadata:
-  name: flask-app-svc
+  name: flask-app-svc-v1
 spec:
   type: NodePort
   ports:
