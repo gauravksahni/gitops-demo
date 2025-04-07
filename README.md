@@ -2,7 +2,7 @@
 #testing the rebase
 gitops-demo
 microservices-in-python
-
+#some additional instructions
 Installing Python 3.X
 Creating Python Virtual Environments python3 -m venv microservices-in-python/venv source venv/bin/activate
 Installing Python VS Code Extension
